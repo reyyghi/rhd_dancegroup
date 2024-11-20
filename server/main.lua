@@ -1,16 +1,23 @@
 local emoteSession = {}
 local alreadyInSession = {}
+local table_type = table.type
 
-local function removeFromSession(source)
-    for _, v in pairs(emoteSession) do
-        if v and type(v) == "table" and table.type(v) == 'array' then
-            for i=1, #v do
-                local src = v[i]
-                if src == source then
-                    emoteSession[_][i] = nil
-                    break
-                end
-            end
+local function removeFromSession(source, sesiId)
+    local sesiData = emoteSession[sesiId]
+
+    if not sesiData or
+        type(sesiData) ~= 'table' or
+        table.type(sesiData) ~= 'array'
+    then
+        return
+    end
+
+    for i=1, #sesiData do
+        local src = sesiData[i]
+        if src == source then
+            emoteSession[sesiId][i] = nil
+            alreadyInSession[src] = nil
+            break
         end
     end
 end
@@ -24,10 +31,13 @@ lib.addCommand('buatsesiemote', {
             type = 'error'
         })
     end
-    alreadyInSession[source] = true
+
     emoteSession[source] = {
         source
     }
+
+    alreadyInSession[source] = source
+
     lib.notify(source, {
         description = 'Berhasil membuat sesi emote',
         type = 'success'
@@ -37,6 +47,15 @@ end)
 lib.addCommand('resetsesiemote', {
     help = 'Reset session emote',
 }, function (source)
+
+    if alreadyInSession[source] and not emoteSession[source] then
+        removeFromSession(source)
+        return  lib.notify(source, {
+            description = 'Sesi emote berhasil di reset!',
+            type = 'success'
+        })
+    end
+
     if not emoteSession[source] then
         return lib.notify(source, {
             description = 'Kamu belum pernah membuat sesi emote!',
@@ -46,14 +65,13 @@ lib.addCommand('resetsesiemote', {
 
     for i=1, #emoteSession[source] do
         local memberSource = emoteSession[source][i]
-        alreadyInSession[memberSource] = false
+        alreadyInSession[memberSource] = nil
     end
 
-    alreadyInSession[source] = false
     emoteSession[source] = nil
 
     lib.notify(source, {
-        description = 'Sesi emote berhasil di hapus!',
+        description = 'Sesi emote berhasil di reset!',
         type = 'success'
     })
 end)
@@ -89,8 +107,15 @@ lib.addCommand('gabungsesiemote', {
     }
 }, function (source, args)
 
+    if emoteSession[source] then
+        return lib.notify(source, {
+            description = 'Kamu yang memiliki sesi ini!',
+            type = 'error'
+        })    
+    end
+
     if alreadyInSession[source] then
-        removeFromSession(source)
+        removeFromSession(source, alreadyInSession[source])
     end
 
     if not emoteSession[args.id] then
@@ -100,7 +125,7 @@ lib.addCommand('gabungsesiemote', {
         })
     end
 
-    alreadyInSession[source] = true
+    alreadyInSession[source] = args.id
     emoteSession[args.id][#emoteSession[args.id]+1] = source
 
     lib.notify(source, {
