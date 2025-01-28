@@ -1,135 +1,136 @@
-local emoteSession = {}
-local alreadyInSession = {}
-local table_type = table.type
+local group = {}
+local sesiiiiiiii = {}
 
-local function removeFromSession(source, sesiId)
-    local sesiData = emoteSession[sesiId]
+local anjay = require 'group.class'
 
-    if not sesiData or
-        type(sesiData) ~= 'table' or
-        table.type(sesiData) ~= 'array'
-    then
-        return
-    end
-
-    for i=1, #sesiData do
-        local src = sesiData[i]
-        if src == source then
-            emoteSession[sesiId][i] = nil
-            alreadyInSession[src] = nil
-            break
-        end
-    end
+local function getSesi(source)
+    return group[source] or sesiiiiiiii[source] and group[sesiiiiiiii[source]]
 end
 
-lib.addCommand('buatsesiemote', {
-    help = 'Membuat session emote',
+lib.addCommand('bsd', {
+    help = 'Buat sesi dance emote'
 }, function (source)
-    if emoteSession[source] then
+    local sesidance = getSesi(source)
+    if sesidance then
         return lib.notify(source, {
-            description = 'Sesi emote anda sudah ada!',
+            description = 'Kamu sudah berada di dalam sesi dance: ' .. sesidance:getId(),
             type = 'error'
         })
     end
 
-    emoteSession[source] = {
-        source
-    }
-
-    alreadyInSession[source] = source
-
-    lib.notify(source, {
-        description = 'Berhasil membuat sesi emote',
-        type = 'success'
-    })
+    group[source] = anjay:new(source)
+    lib.notify(source, {description = 'Sesi emote berhasil dibuat! SESI ID: ' .. source})
 end)
 
-lib.addCommand('resetsesiemote', {
-    help = 'Reset session emote',
+lib.addCommand('csd', {
+    help = 'Cek sesi id dance emote'
 }, function (source)
+    local sesidance = getSesi(source)
 
-    if alreadyInSession[source] and not emoteSession[source] then
-        removeFromSession(source)
-        return  lib.notify(source, {
-            description = 'Sesi emote berhasil di reset!',
-            type = 'success'
-        })
-    end
-
-    if not emoteSession[source] then
+    if not sesidance then
         return lib.notify(source, {
-            description = 'Kamu belum pernah membuat sesi emote!',
+            description = 'Kamu belum gabung ke sesi dance manapun!',
             type = 'error'
         })
     end
 
-    for i=1, #emoteSession[source] do
-        local memberSource = emoteSession[source][i]
-        alreadyInSession[memberSource] = nil
-    end
-
-    emoteSession[source] = nil
-
-    lib.notify(source, {
-        description = 'Sesi emote berhasil di reset!',
-        type = 'success'
-    })
+    lib.notify(source, {description = 'Sesi dance emote kamu sekarang adalah ' .. sesidance:getId()})
 end)
 
-lib.addCommand('playemote', {
-    help = 'Mulai emote',
+lib.addCommand('ksd', {
+    help = 'Keluar sesi dance emote'
+}, function (source)
+    local sesidance = getSesi(source)
+
+    if not sesidance then
+        return lib.notify(source, {
+            description = 'Kamu belum gabung ke sesi dance manapun!',
+            type = 'error'
+        })
+    end
+
+    sesidance:keluar(source, function (id)
+        group[id] = nil
+        sesiiiiiiii[id] = nil
+    end)
+
+    lib.notify(source, {description = 'Kamu telah keluar dari sesi dance.', type = 'success'})
+end)
+
+lib.addCommand('gsd', {
+    help = 'Gabung ke sesi dance emote',
     params = {
         {
-            name = 'name',
+            name = 'sesi_id',
+            type = 'number',
+            help = 'Sesi Id'
+        }
+    }
+}, function (source, args)
+    local sesi = args.sesi_id
+    local sesidance = getSesi(source)
+
+    if sesidance then
+        return lib.notify(source, {
+            description = 'Kamu harus keluar terlebih dahulu dari sesi dance emote saat ini!',
+            type = 'error'
+        })
+    end
+
+    if not group[sesi] then
+        return lib.notify(source, {
+            description = 'Tidak ada sesi dance emote yang tersedia dengan ID: ' .. sesi,
+            type = 'error'
+        })
+    end
+
+    sesiiiiiiii[source] = sesi
+    group[sesi]:gabung(source)
+
+    lib.notify(source, {
+        description = 'Kamu telah bergabung ke dalam sesi dance emote ('..sesi..')',
+        type = 'success'
+    })
+end)
+
+lib.addCommand('msd', {
+    help = 'Mulai sesi dance emote',
+    params = {
+        {
+            name = 'emote',
             type = 'string',
-            help = 'Nama Emote'
+            help = 'Nama emote nya'
         }
     }
 }, function (source, args)
-    if not emoteSession[source] then
+    if not group[source] then
         return lib.notify(source, {
-            description = 'Hanya pemain yang membuat sesi emote yang bisa memulai emote!',
+            description = 'Hanya pemimpin group yang dapat memulai/memberhentikan sesi dance',
             type = 'error'
         })
     end
-
-    lib.triggerClientEvent('rhd_syncAnimation:client:syncEmote', emoteSession[source], args.name)
+    group[source]:mulai(args.emote)
 end)
 
-lib.addCommand('gabungsesiemote', {
-    help = 'Gabung ke sesion emote orang',
-    params = {
-        {
-            name = 'id',
-            type = 'playerId',
-            help = 'Id Pemilik sesion'
-        }
-    }
-}, function (source, args)
-
-    if emoteSession[source] then
+lib.addCommand('ssd', {
+    help = 'Stop sesi dance emote'
+}, function (source)
+    if not group[source] then
         return lib.notify(source, {
-            description = 'Kamu yang memiliki sesi ini!',
-            type = 'error'
-        })    
-    end
-
-    if alreadyInSession[source] then
-        removeFromSession(source, alreadyInSession[source])
-    end
-
-    if not emoteSession[args.id] then
-        return lib.notify(source, {
-            description = 'Tidak ada sesion emote yang tersedia di ID: ' .. args.id,
+            description = 'Hanya pemimpin group yang dapat memulai/memberhentikan sesi dance',
             type = 'error'
         })
     end
 
-    alreadyInSession[source] = args.id
-    emoteSession[args.id][#emoteSession[args.id]+1] = source
+    group[source]:berhenti()
+end)
 
-    lib.notify(source, {
-        description = 'Berhasil bergabung di sesi ' .. args.id,
-        type = 'success'
-    })
+AddEventHandler('playerDropped', function ()
+    local source = source
+    local sesiemote = getSesi(source)
+    sesiemote:keluar(source, function (me)
+        group[me] = nil
+        sesiiiiiiii[me] = nil
+    end)
+    lib.print.info('Sesi dance emote ' .. sesiemote:getId() .. ' telah di bubarkan karena pemain telah keluar dai server.')
 end)
