@@ -20,7 +20,7 @@ function awokawok:mulai(emote)
     end
     self.emote = emote
     self.lagidance = true
-    lib.TriggerClientEvent('rhd_dancegroup:client:mulai', list, self.emote)
+    lib.triggerClientEvent('rhd_dancegroup:client:mulai', list, self.emote)
 end
 
 function awokawok:berhenti()
@@ -30,7 +30,7 @@ function awokawok:berhenti()
     end
     self.emote = nil
     self.lagidance = false
-    lib.TriggerClientEvent('rhd_dancegroup:client:stop', list)
+    lib.triggerClientEvent('rhd_dancegroup:client:stop', list)
 end
 
 function awokawok:hapus(source, cb)
@@ -40,7 +40,7 @@ function awokawok:hapus(source, cb)
         list[#list+1] = id
         pcall(lib.notify, id, {description = 'Sesi dance group telah dibubarkan'})
     end
-    lib.TriggerClientEvent('rhd_dancegroup:client:stop', list)
+    lib.triggerClientEvent('rhd_dancegroup:client:stop', list)
 end
 
 function awokawok:gabung(source)
@@ -59,7 +59,7 @@ function awokawok:keluar(source, cb)
 
     if cb then cb(source) end
     self.member[source] = nil
-    lib.TriggerClientEvent('rhd_dancegroup:client:stop', source)
+    lib.triggerClientEvent('rhd_dancegroup:client:stop', source)
 end
 
 return awokawok
